@@ -7,9 +7,12 @@
 		+ int_fract len for float in format x.y
 	* Remove config using internal printf => allways using internal printf function
 +2022_08_16
-	*Change task_control_block structure format to get better alignment
+	* Change task_control_block structure format to get better alignment
 +2022_08_22
-   *Change behave of usd_terminal task. Temporarity disable terminal while send data via udp to prevent forever loop (send =>printf =>send=>printf =>send ....)
+    * Change behave of usd_terminal task. Temporarity disable terminal while send data via udp to prevent forever loop (send =>printf =>send=>printf =>send ....)
 +2022_08_23
-   *Fix %x,%o,%b format issue in  h_printf
-   *Add nop wait in system task to reduce time in critical section in system_task
+    * Fix %x,%o,%b format issue in  h_printf
+    * Add nop wait in system task to reduce time in critical section in system_task
++2025_02_05
+	* Change OS_SystemTask to static
+	* Add auto define CPU architect for Coxtex M4 STM32F40_41xxx

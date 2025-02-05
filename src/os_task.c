@@ -197,7 +197,7 @@ static inline void  OS_UpdateTaskRunTime(TCB_t * tcb){
 	}
 }
 //********************************************************************************/
-void OS_SystemTask(void* param){
+static void OS_SystemTask(void* param){
 	uint32_t LastTime =0;
 
 	for(;;){
@@ -394,7 +394,7 @@ void OS_Start(){
 #endif
 #endif
 	OS_AddTickCallbackFunction(CPU_TICK_CALLBACK);
-	OS_PRINTF("\r\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+	OS_PRINTF("\r\n\n\n\n");
 	OS_PRINTF("\r\n*********************************");
 	OS_PRINTF("\r\n[SYSYEM] emOS for embedded MCU");
 	OS_PRINTF("\r\n[SYSYEM] Version %u.%u.%u",OS_MAIN_VERSION,OS_SUB_VERSION,OS_PATCH_VERSION);
@@ -991,6 +991,9 @@ void OS_AddTickCallbackFunction( void (*fcn)(void)){
 	}
 }
 //=========================================
+#ifndef useconds_t
+#define useconds_t	uint32_t
+#endif
 int  OS_usleep (useconds_t us){
 	uint32_t ticks;
 	if (OS_GetSchedulerState() == 0)   CPU_USLEEP (us);
