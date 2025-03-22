@@ -232,11 +232,11 @@ void CPU_CONFIG_SYSTEM_TIMER(uint32_t tick_per_sec){
 	*(uint32_t*)0xE000E010   =   0x00000007;            //Clock source: CPU clock,Enable interrupt and force run
 }
 //=============================================================
-uint32_t CPU_GET_TIMER_PERIOD(void){
+uint32_t __attribute__((section(".itcmram"))) CPU_GET_TIMER_PERIOD(void){
 	return timer_period;
 }
 //=============================================================
-uint64_t CPU_GET_TIMER_VAL(void){
+uint64_t __attribute__((section(".itcmram"))) CPU_GET_TIMER_VAL(void){
 	return (uint64_t )internal_tick*timer_period - *(uint32_t*)0xE000E018;
 }
 //=============================================================
@@ -368,15 +368,26 @@ uint32_t swo_is_ready(uint32_t base){
 }
 //=========================================
 extern void OS_register_terminal_driver(uint32_t base,void (*init)(uint32_t),uint32_t (*is_tx_ready)(uint32_t),uint32_t (*send_byte)(uint32_t , uint8_t ),void (*task_code)(void*), uint32_t tx_buf_size);
-static uint8_t terminal_init_state =0;
+
+#ifdef STM32H743xx
+static uint8_t ram_d1[1024*512]  __attribute__((aligned(4), section(".ram_d1")));
+static uint8_t ram_d2[1024*256]  __attribute__((aligned(4), section(".ram_d2")));
+#endif
 void CPU_PERFORM_OTHER_CONFIG(){
-	if(terminal_init_state) return;
-	terminal_init_state =1;
+	static uint8_t init_status =0;
+	if(init_status) return;
+	init_status =1;
+	OS_HeapAddMemAtTheEnd(ram_d1,sizeof(ram_d1));
+	OS_HeapAddMemAtTheEnd(ram_d2,sizeof(ram_d2));
 #ifndef configOS_STDOUT_BUF_SIZE
 	OS_register_terminal_driver(1,swo_init,swo_is_ready,swo_write_char,NULL,2048);
 #else
 	OS_register_terminal_driver(1,swo_init,swo_is_ready,swo_write_char,NULL,configOS_STDOUT_BUF_SIZE);
 #endif
 }
+//=========================================
+
+
+
 #endif
 

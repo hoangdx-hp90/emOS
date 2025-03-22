@@ -144,46 +144,48 @@ typedef struct OS_terminal_driver    OS_terminal_driver_t;
 //**************************************************************************** 
 //====================== API Function Prototype ==============================*
 //****************************************************************************
-int h_printf( const char *format_const, ...);
+int __CPU_FUNC_ATTRIBUTE__ h_printf( const char *format_const, ...);
 //==== MEM API ===========
-void *	     	OS_MemMalloc(uint32_t	size);
-uint32_t		OS_MemFree(void*	p);
-uint32_t		OS_MemSize(void*	p);
+void __CPU_FUNC_ATTRIBUTE__			OS_HeapAddMemAtTheTop(uint8_t * address, uint32_t size);
+void __CPU_FUNC_ATTRIBUTE__			OS_HeapAddMemAtTheEnd(uint8_t * address, uint32_t size);
+void * 		__CPU_FUNC_ATTRIBUTE__	OS_MemMalloc(uint32_t	size);
+uint32_t	__CPU_FUNC_ATTRIBUTE__	OS_MemFree(void*	p);
+uint32_t	__CPU_FUNC_ATTRIBUTE__	OS_MemSize(void*	p);
 //==== Task API ===========
-TCB_t*   		OS_TaskNew(TaskFunction_t,const char * , uint16_t, void*, int8_t);
-void     		OS_Start(void);
-void     		OS_TaskSleep(uint32_t Tick);
-void     		OS_TaskSleepMs(uint32_t msec);
-void       		OS_TaskSleepUntil(uint32_t * PreTime,uint32_t SleepTime);
-void          	OS_TaskSuspend(void);
-void 			   OS_SetTimeQuota(TCB_t * handle ,uint16_t quota);
-void          	OS_TaskDelete(const TCB_t * handle);
-void 			   OS_SetPriority(const TCB_t * handle,int16_t Priority);
-uint32_t       OS_GetTaskStackRemain(TCB_t* handle);
-char* 			OS_GetTaskName(void);
-uint32_t    	OS_GetCurrentTick(void);
-uint64_t    	OS_GetCurrentTimeusec(void);
-uint64_t 		OS_GetCurrentTimeSec(void);
-uint16_t     	OS_GetCPU_Usage(void);
-uint8_t			OS_GetSchedulerState(void);
+TCB_t* 	__CPU_FUNC_ATTRIBUTE__  		OS_TaskNew(TaskFunction_t,const char * , uint16_t, void*, int8_t);
+void   	__CPU_FUNC_ATTRIBUTE__  		OS_Start(void);
+void   	__CPU_FUNC_ATTRIBUTE__  		OS_TaskSleep(uint32_t Tick);
+void  	__CPU_FUNC_ATTRIBUTE__  		OS_TaskSleepMs(uint32_t msec);
+void  	__CPU_FUNC_ATTRIBUTE__    		OS_TaskSleepUntil(uint32_t * PreTime,uint32_t SleepTime);
+void   	__CPU_FUNC_ATTRIBUTE__       	OS_TaskSuspend(void);
+void   	__CPU_FUNC_ATTRIBUTE__		  	OS_SetTimeQuota(TCB_t * handle ,uint16_t quota);
+void   	__CPU_FUNC_ATTRIBUTE__       	OS_TaskDelete(const TCB_t * handle);
+void 	__CPU_FUNC_ATTRIBUTE__		   	OS_SetPriority(const TCB_t * handle,int16_t Priority);
+uint32_t 	__CPU_FUNC_ATTRIBUTE__      OS_GetTaskStackRemain(TCB_t* handle);
+char* 		__CPU_FUNC_ATTRIBUTE__		OS_GetTaskName(void);
+uint32_t    __CPU_FUNC_ATTRIBUTE__		OS_GetCurrentTick(void);
+uint64_t    __CPU_FUNC_ATTRIBUTE__		OS_GetCurrentTimeusec(void);
+uint64_t 	__CPU_FUNC_ATTRIBUTE__		OS_GetCurrentTimeSec(void);
+uint16_t    __CPU_FUNC_ATTRIBUTE__ 		OS_GetCPU_Usage(void);
+uint8_t		__CPU_FUNC_ATTRIBUTE__		OS_GetSchedulerState(void);
 
 
-void 			OS_ShowSystemInfo(void);
-void 			OS_Heapstatus(void);
+void 	__CPU_FUNC_ATTRIBUTE__			OS_ShowSystemInfo(void);
+void 	__CPU_FUNC_ATTRIBUTE__		OS_Heapstatus(void);
 //=== Semaphore/mutex API =========================
 #if configOS_ENABLE_MUTEX
-OS_Mutex_t 		*OS_MutexNew(void);
-uint8_t     	OS_MutexTake(OS_Mutex_t *m,uint32_t Timeout);
-uint8_t     	OS_MutexRelease(OS_Mutex_t *m);
-void        	OS_MutexDelete(OS_Mutex_t *m);
+OS_Mutex_t 	__CPU_FUNC_ATTRIBUTE__	*OS_MutexNew(void);
+uint8_t     __CPU_FUNC_ATTRIBUTE__	OS_MutexTake(OS_Mutex_t *m,uint32_t Timeout);
+uint8_t     __CPU_FUNC_ATTRIBUTE__	OS_MutexRelease(OS_Mutex_t *m);
+void        __CPU_FUNC_ATTRIBUTE__	OS_MutexDelete(OS_Mutex_t *m);
 #endif
 //---- Event internal API. User must not using it direct from application.Use above macro instead
 #if configOS_ENABLE_SEM
-OS_Sem_t   		*OS_SemNew(uint16_t InitCount);
-void        	OS_SemDelete(OS_Sem_t* Sem);
-uint32_t      	OS_SemPend(OS_Sem_t * Sem, uint32_t Timeout);
-uint32_t      	OS_SemPost(OS_Sem_t *Sem);
-void          	OS_SemSet(OS_Sem_t * Sem, uint16_t Count);
+OS_Sem_t   	__CPU_FUNC_ATTRIBUTE__	*OS_SemNew(uint16_t InitCount);
+void        __CPU_FUNC_ATTRIBUTE__	OS_SemDelete(OS_Sem_t* Sem);
+uint32_t    __CPU_FUNC_ATTRIBUTE__  	OS_SemPend(OS_Sem_t * Sem, uint32_t Timeout);
+uint32_t    __CPU_FUNC_ATTRIBUTE__  	OS_SemPost(OS_Sem_t *Sem);
+void        __CPU_FUNC_ATTRIBUTE__  	OS_SemSet(OS_Sem_t * Sem, uint16_t Count);
 #endif
 //=== Queue API ================================== 
 #if configOS_ENABLE_QUEUE
@@ -192,10 +194,10 @@ void          	OS_SemSet(OS_Sem_t * Sem, uint16_t Count);
 #define   OS_MboxPost(x,y)   	OS_QueuePost((x),(y))
 #endif
 //== TERMINAL DRIVER API ==========================
-void OS_register_terminal_driver(uint32_t base,void (*init)(uint32_t),uint32_t (*is_tx_ready)(uint32_t),uint32_t (*send_byte)(uint32_t , uint8_t ),void (*task_code)(void*), uint32_t tx_buf_size);
-void OS_CheckTerminal();
-void OS_OutByte(char ch);
-void OS_UDP_Terminal_task(void* param);
+void  OS_register_terminal_driver(uint32_t base,void (*init)(uint32_t),uint32_t (*is_tx_ready)(uint32_t),uint32_t (*send_byte)(uint32_t , uint8_t ),void (*task_code)(void*), uint32_t tx_buf_size);
+void __CPU_FUNC_ATTRIBUTE__ OS_CheckTerminal();
+void __CPU_FUNC_ATTRIBUTE__ OS_OutByte(char ch);
+void __CPU_FUNC_ATTRIBUTE__ OS_UDP_Terminal_task(void* param);
 //==============================================================
 void OS_AddTickCallbackFunction( void (*fcn)(void));
 

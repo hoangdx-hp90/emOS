@@ -28,11 +28,11 @@
 #ifndef	configOS_HEAP_SIZE
 #define	HEAP_SIZE		(1024*64)
 #else
-#define HEAP_SIZE	configOS_HEAP_SIZE
+#define HEAP_SIZE		configOS_HEAP_SIZE
 #endif
 
-#ifndef	MEM_MEM_ALIGN
-#define	MEM_MEM_ALIGN(x)	(((uint32_t)(x) +CPU_BYTE_ALIGNMENT -1)&~((uint32_t)(CPU_BYTE_ALIGNMENT) -1))
+#ifndef	CPU_MEM_ALIGN
+#define	CPU_MEM_ALIGN(x)	(((uint32_t)(x) +CPU_BYTE_ALIGNMENT -1)&~((uint32_t)(CPU_BYTE_ALIGNMENT) -1))
 #endif
 //-------------------------------------------------------------------------------------
 
@@ -51,16 +51,15 @@ typedef struct A_HEAP_LINK{
 	uint32_t   size;
 } heap_link_t;
 
-#define   HEAP_STRUCT_SIZE_ALIGNED      MEM_MEM_ALIGN(sizeof(heap_link_t))
-#define   HEAP_SIZE_ALIGNED                  MEM_MEM_ALIGN(HEAP_SIZE)
-#define   HEAP_MIN_SIZE_ALIGNED            MEM_MEM_ALIGN(HEAP_MIN_SIZE)
-#define   HEAP_USED_MASK
+#define   HEAP_STRUCT_SIZE_ALIGNED      	CPU_MEM_ALIGN(sizeof(heap_link_t))
+#define   HEAP_MIN_SIZE_ALIGNED            	CPU_MEM_ALIGN(HEAP_MIN_SIZE)
 
-unsigned   char   ARRAY_INDEX(ram_heap,HEAP_SIZE_ALIGNED   +   HEAP_STRUCT_SIZE_ALIGNED   + sizeof(uint32_t)-1);
+
+unsigned   char   ARRAY_INDEX(ram_heap,HEAP_SIZE) __attribute__((aligned(4)));
 heap_link_t   *heap_free_list;
 
-volatile   unsigned char heap_init_state =0;
-
+volatile  unsigned char heap_init_state =0;
+volatile uint32_t total_heap_size = 0;
 /*********************************************************************************************************
  *          Function: OS_HeapInit
  *
@@ -73,22 +72,89 @@ volatile   unsigned char heap_init_state =0;
  *
  * Note(s)      : This function is INTERNAL to RTOS and your application should not call it.
  *********************************************************************************************************/
-void      OS_HeapInit(void){
+void OS_HeapInit(void){
 	OS_ENTER_CRITICAL();
 	if(heap_init_state ==0){
 		//01.Init free Link list
-		heap_free_list =(heap_link_t   *) MEM_MEM_ALIGN(ram_heap);
+		heap_free_list =(heap_link_t   *) CPU_MEM_ALIGN(ram_heap);
 		heap_free_list->next   =   NULL;
-		heap_free_list->size   =   HEAP_SIZE_ALIGNED;
+		heap_free_list->size   =   sizeof(ram_heap) - HEAP_STRUCT_SIZE_ALIGNED;
+		total_heap_size += heap_free_list->size;
 		//02.Change heap_Init State
 		heap_init_state = 1;
 		OS_EXIT_CRITICAL();
-//		HEAP_MSG("\r\nHeap initialization done");
+		//		HEAP_MSG("\r\nHeap initialization done");
 	}
 	else{
 		HEAP_ERR("\r\nHeap initialization error. Call init when heap_init_state != 0");
 		HEAP_ERR("\r\nHeap initialization error. Internal error. Please Stop");
 	}
+}
+/*********************************************************************************************************
+ *          Function: OS_HeapAddMemAtTheEnd
+ *
+ * Description : This function is called by user to add more heap memory segment when cpu has multiple ram Region.
+ *				 New segment wil be insert at the end of heap_free_list
+ * Arguments   : address : First address of mem_block
+ * 				 size:total size of mem_block
+ *
+ * Returns      : none
+ *
+ * Note(s)      : Do not register overlapped memory
+ *********************************************************************************************************/
+void OS_HeapAddMemAtTheEnd(uint8_t * address, uint32_t size){
+	if(heap_init_state ==0){
+		OS_ENTER_CRITICAL();
+		OS_HeapInit();
+		OS_EXIT_CRITICAL();
+	}
+	OS_ENTER_CRITICAL();
+
+	uint32_t mem_aligned_add = CPU_MEM_ALIGN((uint32_t)address);//Align mem block address
+	size -= mem_aligned_add - (uint32_t)address;
+	size = CPU_MEM_ALIGN(size);
+	heap_link_t* new_block = (heap_link_t*)mem_aligned_add;
+	new_block->next = NULL;
+	new_block->size = size - HEAP_STRUCT_SIZE_ALIGNED;
+
+
+	if(heap_free_list == NULL) heap_free_list = new_block;
+	else{
+		heap_link_t* cur_heap_block = heap_free_list;
+		while(cur_heap_block->next != NULL) cur_heap_block =cur_heap_block->next;
+		cur_heap_block->next = new_block;
+	}
+	total_heap_size += new_block->size;
+	OS_EXIT_CRITICAL();
+}
+/*********************************************************************************************************
+ *          Function: OS_HeapAddMemAtTheEnd
+ *
+ * Description : This function is called by user to add more heap memory segment when cpu has multiple ram Region.
+ *				 New segment wil be insert at the end of heap_free_list
+ * Arguments   : address : First address of mem_block
+ * 				 size:total size of mem_block
+ *
+ * Returns      : none
+ *
+ * Note(s)      : Do not register overlapped memory
+ *********************************************************************************************************/
+void OS_HeapAddMemAtTheTop(uint8_t * address, uint32_t size){
+	if(heap_init_state ==0){
+		OS_ENTER_CRITICAL();
+		OS_HeapInit();
+		OS_EXIT_CRITICAL();
+	}
+	OS_ENTER_CRITICAL();
+	uint32_t mem_aligned_add = CPU_MEM_ALIGN((uint32_t)address);//Align mem block address
+	size -= mem_aligned_add - (uint32_t)address;
+	size = CPU_MEM_ALIGN(size);
+	heap_link_t* new_block = (heap_link_t*)mem_aligned_add;
+	new_block->next = heap_free_list;
+	new_block->size = size - HEAP_STRUCT_SIZE_ALIGNED;
+	heap_free_list = new_block;
+	total_heap_size += new_block->size;
+	OS_EXIT_CRITICAL();
 }
 /*********************************************************************************************************
  *          Function: OS_MemMalloc
@@ -103,7 +169,7 @@ void      OS_HeapInit(void){
  * Note(s)       :   Address always aligned to match CPU architect
  *********************************************************************************************************/
 void *   OS_MemMalloc(uint32_t   size){
-	heap_link_t   * current_block,*pre_block,*temp;
+	heap_link_t   * current_block,*pre_block;
 	void *result;
 
 	if(heap_init_state ==0){
@@ -113,7 +179,7 @@ void *   OS_MemMalloc(uint32_t   size){
 	}
 	//01.Check parameter
 	if(size ==0) return NULL;
-	size   =   (uint32_t)MEM_MEM_ALIGN(size);
+	size   =   (uint32_t)CPU_MEM_ALIGN(size);
 	result = NULL;
 	//02.Prevent concurrent access by OS_CRITICAL Section
 	OS_ENTER_CRITICAL();
@@ -128,13 +194,13 @@ void *   OS_MemMalloc(uint32_t   size){
 	}
 	//04.Check   block
 	if(current_block == NULL)   goto exit_;
-	//05.Need Slip block in two ?
+	//05.Need Slit block in two ?
 	if (current_block->size > size + HEAP_STRUCT_SIZE_ALIGNED + HEAP_MIN_SIZE_ALIGNED){
-		temp   =   (heap_link_t*)((uint32_t)current_block + HEAP_STRUCT_SIZE_ALIGNED + size);
-		temp->next = current_block->next;
-		current_block->next = temp;
-		temp->size = current_block->size - size - HEAP_STRUCT_SIZE_ALIGNED;
-		current_block->size   =   size;
+		heap_link_t * new_block = (heap_link_t*)((uint32_t)current_block + HEAP_STRUCT_SIZE_ALIGNED + size);
+		new_block->next 		= current_block->next;
+		new_block->size 		= current_block->size - size - HEAP_STRUCT_SIZE_ALIGNED;
+		current_block->next 	= new_block;
+		current_block->size   	= size;
 	}
 	//06.Remove Block from free list
 	if(pre_block != NULL){
@@ -257,7 +323,7 @@ uint32_t   heap_free_left(){
 }
 //==================================================================
 uint32_t heap_total(void){
-	return HEAP_SIZE;
+	return total_heap_size;
 }
 //==================================================================
 uint32_t heap_smallest_block(void){

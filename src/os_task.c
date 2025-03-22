@@ -99,13 +99,13 @@ void __attribute((weak))  		CPU_OS_TICK_CALBACK(){}
 //	return list;
 //}
 //********************************************************************************/
-void OS_InsertList_ns(TCB_t ** list, TCB_t *tcb){
+void  OS_InsertList_ns(TCB_t ** list, TCB_t *tcb){
 	if(list == NULL || tcb == NULL) return ;
 	tcb->next = *list;
 	*list = tcb;
 }
 //********************************************************************************/
-void OS_InsertEndList_ns(TCB_t ** list, TCB_t *tcb){
+void  OS_InsertEndList_ns(TCB_t ** list, TCB_t *tcb){
 	TCB_t * cur,*pre;
 	if(list == NULL  || tcb == NULL){
 		OS_PRINTF("\r\n[OS_InsertEndList] Could not process NULL list");
@@ -188,7 +188,7 @@ void OS_SelectNextTaskToRun_ns(){
 	//	OS_PRINTF("\r\n %s -> %s at %u" , CurrentTCB->name,NextTCB->name, OS_Tick);
 }
 /********************************************************************************/
-static inline void  OS_UpdateTaskRunTime(TCB_t * tcb){
+static inline void  __CPU_FUNC_ATTRIBUTE__ OS_UpdateTaskRunTime(TCB_t * tcb){
 	if(tcb != NULL) {
 		uint32_t cur_time = CPU_GET_TIMER_VAL();
 		uint32_t cur_run_time = cur_time - tcb->start_time;
@@ -197,7 +197,7 @@ static inline void  OS_UpdateTaskRunTime(TCB_t * tcb){
 	}
 }
 //********************************************************************************/
-static void OS_SystemTask(void* param){
+static void __CPU_FUNC_ATTRIBUTE__ OS_SystemTask(void* param){
 	uint32_t LastTime =0;
 
 	for(;;){
