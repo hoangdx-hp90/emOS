@@ -377,8 +377,10 @@ void CPU_PERFORM_OTHER_CONFIG(){
 	static uint8_t init_status =0;
 	if(init_status) return;
 	init_status =1;
+#ifdef STM32H743xx
 	OS_HeapAddMemAtTheEnd(ram_d1,sizeof(ram_d1));
 	OS_HeapAddMemAtTheEnd(ram_d2,sizeof(ram_d2));
+#endif
 #ifndef configOS_STDOUT_BUF_SIZE
 	OS_register_terminal_driver(1,swo_init,swo_is_ready,swo_write_char,NULL,2048);
 #else
